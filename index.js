@@ -10,8 +10,12 @@ const exp = require('constants');
 const { error } = require('console');
 const { CLIENT_RENEG_LIMIT } = require('tls');
 const cloudinary = require('cloudinary').v2;
+const fileupload = require('express-fileupload');
 require('dotenv').config();
 
+app.use(fileupload({
+    useTempFiles: true
+}))
 app.use(express.json());
 app.use(cors());
 
@@ -33,30 +37,31 @@ app.get("/", (req, res) => {
 
 //Image Storage Engine
 
-const storage = multer.diskStorage({
-    filename: (req, file, cb) => {
-        return cb(null, file.originalname)
-    }
-})
-const upload = multer({ storage: storage });
+// const storage = multer.diskStorage({
+//     filename: (req, file, cb) => {
+//         return cb(null, file.originalname)
+//     }
+// })
+// const upload = multer({ storage: storage });
 
-// Creating upload endpoint for images
-app.post("/upload", upload.single('product'), async (req, res) => {
+
+
+// Creating upload endpoint for images upload.single('product')
+app.post("/upload", async (req, res) => {
     try {
-
-       const data = await cloudinary.uploader.upload(req.file.path)
-            console.log(data);
-            res.json({
-                success:true,
-                secure_url:data.secure_url,
-                public_id:data.public_id
-            })
+        let imz = req.files.product;
+        const data = await cloudinary.uploader.upload(imz.tempFilePath)
+        console.log(data);
+        res.json({
+            success: true,
+            secure_url: data.secure_url,
+            public_id: data.public_id
+        })
     }
     catch (error) {
         console.error(error);
     }
 })
-
 
 // Schema for crating products
 
@@ -131,11 +136,11 @@ app.post('/addproduct', async (req, res) => {
 // Creating API for deleting products
 
 app.post('/removeproduct', async (req, res) => {
-    const product = await Product.findOne({id:req.body.id})
+    const product = await Product.findOne({ id: req.body.id })
     image_id = product.image_id;
     await cloudinary.uploader.destroy(image_id);
     await Product.findOneAndDelete({ id: req.body.id });
-    console.log("removed")
+    console.log("product removed")
     res.json({
         success: true,
         name: req.body.name,
