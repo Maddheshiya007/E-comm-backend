@@ -7,11 +7,10 @@ const multer = require("multer");
 const path = require("path");
 const cors = require("cors");
 const exp = require('constants');
-const { error } = require('console');
-const { CLIENT_RENEG_LIMIT } = require('tls');
 const cloudinary = require('cloudinary').v2;
 const fileupload = require('express-fileupload');
 require('dotenv').config();
+const stripe = require('stripe')("sk_test_51OZdLxSDBAKiS622QsxbhBk2RdDm949ZSMuF4krXRY5l6mJy1ozfaT0WkZJM1oA1bUErbgtl6fIs2P4ebGV1wLNx00uxQgALft")
 
 app.use(fileupload({
     useTempFiles: true
@@ -44,7 +43,32 @@ app.get("/", (req, res) => {
 // })
 // const upload = multer({ storage: storage });
 
+// creating endpoint for stripe payment
 
+app.post('/create-checkout-session', async (req,res)=>{
+    const {products} = req.body;
+
+    const lineItems = products.map((product)=>({
+        price_data:{
+            currency:"inr",
+            product_data:{
+                name:product.name,
+            },
+            unit_amount:product.price*100,
+        },
+        quantity:product.qty
+    }))
+    const session = await stripe.checkout.sessions.create({
+
+        payment_method_types:['card'],
+        line_items:lineItems,
+        mode:"payment",
+        success_url:"http://localhost:3000",
+        cancel_url:"http://localhost:3000"
+    })
+    res.json({id:session.id})
+
+})
 
 // Creating upload endpoint for images upload.single('product')
 app.post("/upload", async (req, res) => {
